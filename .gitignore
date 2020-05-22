@@ -1,0 +1,6 @@
+# ignore bundle files
+*.tar.gz
+# ignore pycache folders
+__pycache__/
+# ignore notebook checkpoints folder
+.ipynb_checkpoints/
