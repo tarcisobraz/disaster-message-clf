@@ -7,8 +7,8 @@ from nltk.tokenize import word_tokenize
 
 from flask import Flask
 from flask import render_template, request, jsonify
-from plotly.graph_objs import Bar
-from sklearn.externals import joblib
+import plotly.graph_objs as plt_gos
+import joblib
 from sqlalchemy import create_engine
 
 
@@ -25,42 +25,75 @@ def tokenize(text):
 
     return clean_tokens
 
+def count_words(messages):
+    num_words_per_message = messages.apply(lambda x: len(x.split(' ')))
+    return num_words_per_message.median()
+
 # load data
-engine = create_engine('sqlite:///../data/YourDatabaseName.db')
-df = pd.read_sql_table('YourTableName', engine)
+engine = create_engine('sqlite:///../data/DisasterResponse.db')
+messages = pd.read_sql_table('Message', engine)
+messages_tokens = pd.read_sql_table('MessageTokens', engine)
+messages_cats_wide = pd.read_sql_table('MessageCategoryWide', engine)
+messages_cats_long = pd.read_sql_table('MessageCategoryLong', engine)
+
+messages_wide = messages.merge(messages_cats_wide, on='message_id')
+messages_long = messages.merge(messages_cats_long, on='message_id')
 
 # load model
-model = joblib.load("../models/your_model_name.pkl")
+model = joblib.load("../models/classifier.pkl")
 
 
 # index webpage displays cool visuals and receives user input text for model
 @app.route('/')
 @app.route('/index')
 def index():
-    
+
     # extract data needed for visuals
-    # TODO: Below is an example - modify to extract data for your own visuals
-    genre_counts = df.groupby('genre').count()['message']
-    genre_names = list(genre_counts.index)
-    
+    num_words_dist = messages.message.apply(lambda x: len(x.split())).to_frame(name='num_words')
+
+    word_counts_by_category = messages_long.groupby('category').message \
+        .agg(lambda x: count_words(x)).reset_index(name='num_words')
+    word_counts_by_category
+
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
     graphs = [
         {
             'data': [
-                Bar(
-                    x=genre_names,
-                    y=genre_counts
+                plt_gos.Histogram(
+                    x=num_words_dist.num_words
                 )
             ],
 
             'layout': {
-                'title': 'Distribution of Message Genres',
+                'title': 'Distribution of Number of Words (Overall)',
                 'yaxis': {
-                    'title': "Count"
+                    'title': "Count",
+                    'type': "log"
                 },
                 'xaxis': {
-                    'title': "Genre"
+                    'title': "Number of Words"
+                }
+            }
+        },
+        {
+            'data': [
+                plt_gos.Bar(
+                    x=word_counts_by_category.num_words,
+                    y=word_counts_by_category.category,
+                    orientation='h',
+                )
+            ],
+
+            'layout': {
+                'title': 'Distribution of Number of Words (Per Category)',
+                'height': 800, 
+                'width': 600,
+                'yaxis': {
+                    'title': "Category"
+                },
+                'xaxis': {
+                    'title': "Number of Words"
                 }
             }
         }
@@ -82,7 +115,9 @@ def go():
 
     # use model to predict classification for query
     classification_labels = model.predict([query])[0]
-    classification_results = dict(zip(df.columns[4:], classification_labels))
+    classification_results = dict(zip(messages_wide.columns[4:], classification_labels))
+
+    # print(classification_results)
 
     # This will render the go.html Please see that file. 
     return render_template(
