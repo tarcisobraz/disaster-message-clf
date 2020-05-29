@@ -25,19 +25,12 @@ def tokenize(text):
 
     return clean_tokens
 
-def count_words(messages):
-    num_words_per_message = messages.apply(lambda x: len(x.split(' ')))
-    return num_words_per_message.median()
-
 # load data
 engine = create_engine('sqlite:///../data/DisasterResponse.db')
 messages = pd.read_sql_table('Message', engine)
-messages_tokens = pd.read_sql_table('MessageTokens', engine)
-messages_cats_wide = pd.read_sql_table('MessageCategoryWide', engine)
-messages_cats_long = pd.read_sql_table('MessageCategoryLong', engine)
-
-messages_wide = messages.merge(messages_cats_wide, on='message_id')
-messages_long = messages.merge(messages_cats_long, on='message_id')
+categories = pd.read_sql_table('Category', engine)
+corpus_wide = pd.read_sql_table('CorpusWide', engine)
+ngram_freqs = pd.read_sql_table('NGramsFreqs', engine)
 
 # load model
 model = joblib.load("../models/classifier.pkl")
@@ -49,11 +42,9 @@ model = joblib.load("../models/classifier.pkl")
 def index():
 
     # extract data needed for visuals
-    num_words_dist = messages.message.apply(lambda x: len(x.split())).to_frame(name='num_words')
-
-    word_counts_by_category = messages_long.groupby('category').message \
-        .agg(lambda x: count_words(x)).reset_index(name='num_words')
-    word_counts_by_category
+    top_unigrams = ngram_freqs[ngram_freqs['n'] == 1].head(20)
+    top_bigrams = ngram_freqs[ngram_freqs['n'] == 2].head(20)
+    top_trigrams = ngram_freqs[ngram_freqs['n'] == 3].head(20)
 
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
@@ -61,39 +52,119 @@ def index():
         {
             'data': [
                 plt_gos.Histogram(
-                    x=num_words_dist.num_words
+                    x=messages.num_words
                 )
             ],
 
             'layout': {
                 'title': 'Distribution of Number of Words (Overall)',
                 'yaxis': {
-                    'title': "Count",
-                    'type': "log"
+                    'title': "Count (log scale)",
+                    'type': "log",
+                    'showgrid': False,
                 },
                 'xaxis': {
-                    'title': "Number of Words"
+                    'title': "Number of Words",
+                    'showgrid': False,
+                }
+            },
+        },
+        {
+            'data': [
+                plt_gos.Bar(
+                    x=categories.num_msgs,
+                    y=categories.category,
+                    orientation='h',
+                ),
+                plt_gos.Bar(
+                    x=categories.num_words,
+                    y=categories.category,
+                    orientation='h',
+                    xaxis="x2",
+                    yaxis="y2"
+                )
+            ],
+
+            'layout': {
+                'showlegend': False,
+                'height': 800,
+                'title': 'Number of Messages/Words Per Category',
+                'yaxis': {
+                    'title': "Category"
+                },
+                'yaxis2': {
+                    'anchor': "x2"
+                },
+                'xaxis': {
+                    'title': "Number of Messages (log scale)",
+                    'domain': [0.1, 0.5],
+                    'showgrid': False,
+                    'type': "log"
+                },
+                'xaxis2': {
+                    'title': "Number of Words",
+                    'domain': [0.6, 1],
+                    'showgrid': False,
                 }
             }
         },
         {
             'data': [
                 plt_gos.Bar(
-                    x=word_counts_by_category.num_words,
-                    y=word_counts_by_category.category,
-                    orientation='h',
+                    x=top_unigrams.ngram,
+                    y=top_unigrams['count']
                 )
             ],
 
             'layout': {
-                'title': 'Distribution of Number of Words (Per Category)',
-                'height': 800, 
-                'width': 600,
+                'title': 'Top Unigrams',
                 'yaxis': {
-                    'title': "Category"
+                    'title': "Num. Occurrences",
+                    'showgrid': False,
                 },
                 'xaxis': {
-                    'title': "Number of Words"
+                    'title': "Word (Unigram)",
+                    'showgrid': False,
+                }
+            }
+        },
+        {
+            'data': [
+                plt_gos.Bar(
+                    x=top_bigrams.ngram,
+                    y=top_bigrams['count']
+                )
+            ],
+
+            'layout': {
+                'title': 'Top Bigrams',
+                'yaxis': {
+                    'title': "Num. Occurrences",
+                    'showgrid': False,
+                },
+                'xaxis': {
+                    'title': "Words (Bigram)",
+                    'showgrid': False,
+                }
+            }
+        },
+        {
+            'data': [
+                plt_gos.Bar(
+                    x=top_trigrams.ngram,
+                    y=top_trigrams['count']
+                )
+            ],
+
+            'layout': {
+                'title': 'Top Trigrams',
+                'yaxis': {
+                    'title': "Num. Occurrences",
+                    'showgrid': False,
+                },
+                'xaxis': {
+                    'title': "Words (Trigram)",
+                    'showgrid': False,
                 }
             }
         }
@@ -115,7 +186,7 @@ def go():
 
     # use model to predict classification for query
     classification_labels = model.predict([query])[0]
-    classification_results = dict(zip(messages_wide.columns[4:], classification_labels))
+    classification_results = dict(zip(corpus_wide.columns[4:], classification_labels))
 
     # print(classification_results)
 
