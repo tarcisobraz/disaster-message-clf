@@ -1,3 +1,4 @@
+import sys
 import json
 import plotly
 import pandas as pd
@@ -6,10 +7,12 @@ from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 
 from flask import Flask
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, url_for
 import plotly.graph_objs as plt_gos
 import joblib
 from sqlalchemy import create_engine
+
+from skimage import io
 
 
 app = Flask(__name__)
@@ -40,12 +43,32 @@ model = joblib.load("../models/classifier.pkl")
 @app.route('/')
 @app.route('/index')
 def index():
+    
+    # render web page with plotly graphs
+    return render_template('master.html')
+    
 
-    # extract data needed for visuals
-    top_unigrams = ngram_freqs[ngram_freqs['n'] == 1].head(20)
-    top_bigrams = ngram_freqs[ngram_freqs['n'] == 2].head(20)
-    top_trigrams = ngram_freqs[ngram_freqs['n'] == 3].head(20)
+# web page that handles user query and displays model results
+@app.route('/go', endpoint='go')
+def go():
+    # save user input in query
+    query = request.args.get('query', '') 
 
+    # use model to predict classification for query
+    classification_labels = model.predict([query])[0]
+    classification_results = dict(zip(corpus_wide.columns[4:], classification_labels))
+
+    # print(classification_results)
+
+    # This will render the go.html Please see that file. 
+    return render_template(
+        'go.html',
+        query=query,
+        classification_result=classification_results
+    )
+
+@app.route('/words_msgs_dist', endpoint='words_msgs_dist')
+def words_msgs_dist():
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
     graphs = [
@@ -107,7 +130,25 @@ def index():
                     'showgrid': False,
                 }
             }
-        },
+        }
+    ]
+    
+    # encode plotly graphs in JSON
+    ids = ["graph-{}".format(i) for i, _ in enumerate(graphs)]
+    graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
+
+    # render web page with plotly graphs
+    return render_template('words_msgs_dist.html', ids=ids, graphJSON=graphJSON)
+
+
+@app.route('/ngrams_dist', endpoint='ngrams_dist')
+def ngrams_dist():
+    # extract data needed for visuals
+    top_unigrams = ngram_freqs[ngram_freqs['n'] == 1].head(20)
+    top_bigrams = ngram_freqs[ngram_freqs['n'] == 2].head(20)
+    top_trigrams = ngram_freqs[ngram_freqs['n'] == 3].head(20)
+    
+    graphs = [
         {
             'data': [
                 plt_gos.Bar(
@@ -123,7 +164,7 @@ def index():
                     'showgrid': False,
                 },
                 'xaxis': {
-                    'title': "Word (Unigram)",
+                    'title': "Unigrams",
                     'showgrid': False,
                 }
             }
@@ -143,7 +184,7 @@ def index():
                     'showgrid': False,
                 },
                 'xaxis': {
-                    'title': "Words (Bigram)",
+                    'title': "Bigrams",
                     'showgrid': False,
                 }
             }
@@ -163,7 +204,7 @@ def index():
                     'showgrid': False,
                 },
                 'xaxis': {
-                    'title': "Words (Trigram)",
+                    'title': "Trigrams",
                     'showgrid': False,
                 }
             }
@@ -175,27 +216,19 @@ def index():
     graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
     
     # render web page with plotly graphs
-    return render_template('master.html', ids=ids, graphJSON=graphJSON)
+    return render_template('ngrams_dist.html', ids=ids, graphJSON=graphJSON)
+    
 
-
-# web page that handles user query and displays model results
-@app.route('/go')
-def go():
-    # save user input in query
-    query = request.args.get('query', '') 
-
-    # use model to predict classification for query
-    classification_labels = model.predict([query])[0]
-    classification_results = dict(zip(corpus_wide.columns[4:], classification_labels))
-
-    # print(classification_results)
-
-    # This will render the go.html Please see that file. 
-    return render_template(
-        'go.html',
-        query=query,
-        classification_result=classification_results
-    )
+@app.route('/ngrams_wordcloud', endpoint='ngrams_wordcloud')
+def ngrams_wordcloud():
+    static_imgs_folder = '/static/imgs/'
+    
+    imgs = {static_imgs_folder + 'uni_wordcloud.png':'Top Unigrams WordCloud',
+            static_imgs_folder + 'bi_wordcloud.png' :'Top Bigrams WordCloud', 
+            static_imgs_folder + 'tri_wordcloud.png':'Top Trigrams WordCloud'}
+    
+    # This will render the words_msgs_dist.html Please see that file. 
+    return render_template('ngrams_wordcloud.html', imgs=imgs)
 
 
 def main():
