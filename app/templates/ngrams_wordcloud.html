@@ -1,0 +1,14 @@
+{% extends "master.html" %}
+{% block content %}
+    <h1 class="text-center">Dataset Overview - Top N-Grams (Word Clouds)</h1>
+
+	{% for img_path, img_caption in imgs.items() %}
+		<div class="my-5">
+          <h3 class="text-center font-weight-bold">{{img_caption}}</h2>
+          <img src="{{img_path}}" alt="{{img_path}}" class="mx-auto d-block" width="600">
+          <figcaption class="figure-caption text-center font-weight-bolder"></figcaption>
+		</div>
+	{% endfor %}
+{% endblock %}
+
+
