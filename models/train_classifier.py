@@ -1,20 +1,16 @@
 #General libs
 import sys
+import os
 
 #Data wrangling libs
 import pandas as pd
-
-#NLP libs
-import nltk
-from nltk import WordNetLemmatizer
-nltk.download('punkt')
-nltk.download('wordnet')
+import numpy as np
 
 #DB related libs
 from sqlalchemy import create_engine
 
 #ML models related libs
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.multioutput import MultiOutputClassifier
@@ -24,10 +20,36 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.metrics import classification_report
 from sklearn.model_selection import GridSearchCV
-import joblib
+
+#Gensim
+from gensim.models import KeyedVectors
 
 #Custom Transformers and Estimators
-from nlp_estimators import *
+import nlp_estimators
+
+#Model Saver
+import dill
+
+glove_models_by_size = {50: None,
+                        100: None,
+                        300: None}
+
+def get_or_load_glove_model(num_dims, glove_models_folderpath):
+    if glove_models_by_size[num_dims] == None:
+        print('Pre-trained Glove Model with {} dims not found. '\
+                '\nLoading it from file...'.format(num_dims))
+        glove_models_by_size[num_dims] = KeyedVectors.load_word2vec_format(
+            os.path.join(glove_models_folderpath,
+            'glove.6B.{}d_word2vec.txt'.format(num_dims)),
+            binary=False)
+    return glove_models_by_size[num_dims]
+
+def load_glove_models(glove_models_folderpath):
+    print('Loading Glove Models...')
+    glove_models_by_size[50] = get_or_load_glove_model(50, glove_models_folderpath)
+    glove_models_by_size[100] = get_or_load_glove_model(100, glove_models_folderpath)
+    glove_models_by_size[300] = get_or_load_glove_model(300, glove_models_folderpath)
+    print('\tDone Loading Glove Models!')
 
 def load_data(database_filepath):
     engine = create_engine('sqlite:///' + database_filepath)
@@ -40,33 +62,70 @@ def load_data(database_filepath):
     Y_df = categories_df.drop(['message_id', 'message', 'original', 'genre'], axis=1)
     Y = Y_df.values
     category_columns = Y_df.columns
+    categories_tokens = np.array([np.array(cat.split('_')) for cat in category_columns])
     
-    return X, X_tokenized, Y, category_columns
+    return X, X_tokenized, Y, category_columns, categories_tokens
 
 
-def tokenize(text):
-    tokens = nltk.tokenize.word_tokenize(text.lower().strip())
-    lemmatizer = WordNetLemmatizer()
-    clean_tokens = [lemmatizer.lemmatize(tok) for tok in tokens]
-
-    return clean_tokens
-
-
-def build_model(model_config):
+def build_model(model_config,glove_models_folderpath,categories_tokens):
     feature_set = model_config['feature_set']
     pipeline = grid_search_params = grid_search_cv = None
     jobs = -1
     score = 'f1_micro'
-    def_cv = 3
+    def_cv = 2
     verbosity_level=10
     
     if feature_set == 'local_w2v':
         pipeline = Pipeline([
-                            ('local_w2v', TfidfEmbeddingTrainVectorizer()),
+                            ('local_w2v', nlp_estimators.TfidfEmbeddingTrainVectorizer()),
                             ('clf', MultiOutputClassifier(GaussianNB()))
                         ])
         
         grid_search_params = {'local_w2v__num_dims' : [50]}
+
+    elif feature_set == 'glove':
+        pipeline = Pipeline([
+                            ('glove', nlp_estimators.TfidfEmbeddingTrainVectorizer(
+                                get_or_load_glove_model(50,glove_models_folderpath))),
+                            ('clf', MultiOutputClassifier(GaussianNB()))
+                        ])
+
+        grid_search_params = {'glove__word2vec_model' : 
+                            [get_or_load_glove_model(50,glove_models_folderpath)]}
+
+    elif feature_set == 'doc2vec':
+        pipeline = Pipeline([
+                            ('doc2vec', nlp_estimators.Doc2VecTransformer()),
+                            ('clf', MultiOutputClassifier(GaussianNB()))
+                        ])
+
+        grid_search_params = {'doc2vec__vector_size' : [50]}
+
+    elif feature_set == 'cats_sim':
+        pipeline = Pipeline([
+                            ('cats_sim', nlp_estimators.CategoriesSimilarity(
+                                categories_tokens=categories_tokens)),
+                            ('clf', MultiOutputClassifier(GaussianNB()))
+                        ])
+
+        grid_search_params = {'cats_sim__word2vec_model' : 
+                            [get_or_load_glove_model(50,glove_models_folderpath)]}
+
+    elif feature_set == 'all_feats':
+        pipeline = Pipeline([
+                            ('features', FeatureUnion([
+                                ('local_w2v', nlp_estimators.TfidfEmbeddingTrainVectorizer(num_dims=50)),
+                                ('glove', nlp_estimators.TfidfEmbeddingTrainVectorizer(
+                                    get_or_load_glove_model(50,glove_models_folderpath)
+                                )),
+                                ('doc2vec', nlp_estimators.Doc2VecTransformer(vector_size=50)),
+                                ('cats_sim', nlp_estimators.CategoriesSimilarity(categories_tokens=categories_tokens,
+                                word2vec_model=get_or_load_glove_model(50,glove_models_folderpath)))
+                            ])),
+                            ('clf', MultiOutputClassifier(GaussianNB()))
+                        ])
+        
+        grid_search_params = {}
         
 #         params_options_models_simple = [MultiOutputClassifier(RandomForestClassifier(random_state=199,
 #                                                         n_estimators=50,
@@ -101,30 +160,27 @@ def evaluate_model(model, X_test, Y_test, category_names):
     # Predict on test data with best params
     test_score = model.score(X_test, Y_test)
     # Test data accuracy of model with best params
-    print('Test set score for best params: %.3f ' % test_score)    
-    
-#     for category_idx in range(len(category_names)):
-#         print(classification_report(y_pred=Y_pred[:,category_idx],
-#                                     y_true=Y_test[:,category_idx], 
-#                                     labels=[0,1], 
-#                                     target_names=[category_names[category_idx] + '-0',
-#                                                   category_names[category_idx] + '-1']))
+    print('Test set score for best params: %.3f ' % test_score)
 
 
 def save_model(model, model_filepath):
     # Output a pickle file for the model
-    joblib.dump(model, model_filepath) 
+    #joblib.dump(model, model_filepath) 
+    with open(model_filepath,'wb') as f:
+        dill.dump(model, f)
 
 
 def main():
-    if len(sys.argv) == 3:
-        database_filepath, model_filepath = sys.argv[1:]
+    if len(sys.argv) == 4:
+        database_filepath, model_filepath, glove_models_folderpath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
-        X, X_tokenized, Y, category_names = load_data(database_filepath)
+        X, X_tokenized, Y, category_names, categories_tokens = load_data(database_filepath)
         X_train, X_test, Y_train, Y_test = train_test_split(X_tokenized, Y, test_size=0.25)
         
         print('Building model...')
-        model = build_model({'feature_set':'local_w2v'})
+        model = build_model({'feature_set':'all_feats'},
+                            glove_models_folderpath,
+                            categories_tokens)
         
         print('Training model...')
         model.fit(X_train, Y_train)
@@ -139,9 +195,11 @@ def main():
 
     else:
         print('Please provide the filepath of the disaster messages database '\
-              'as the first argument and the filepath of the pickle file to '\
-              'save the model to as the second argument. \n\nExample: python '\
-              'train_classifier.py ../data/DisasterResponse.db classifier.pkl')
+              'as the first argument, the filepath of the pickle file to '\
+              'save the model to as the second argument, and the folder where '\
+              'pre-built Glove models are stored as the third argument. \n\n'\
+              'Example: python train_classifier.py ../data/DisasterResponse.db '\
+              'best-classifier.pkl ./glove-pretrained')
 
 
 if __name__ == '__main__':
