@@ -2,31 +2,22 @@ import sys
 import json
 import plotly
 import pandas as pd
+import numpy as np
 
-from nltk.stem import WordNetLemmatizer
-from nltk.tokenize import word_tokenize
+from nltk import WordNetLemmatizer
 
 from flask import Flask
 from flask import render_template, request, jsonify, url_for
 import plotly.graph_objs as plt_gos
-import joblib
+import dill
 from sqlalchemy import create_engine
 
 from skimage import io
 
+sys.path.insert(1, '../models/')
+from nlp_estimators import tokenize_to_str
 
 app = Flask(__name__)
-
-def tokenize(text):
-    tokens = word_tokenize(text)
-    lemmatizer = WordNetLemmatizer()
-
-    clean_tokens = []
-    for tok in tokens:
-        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
-        clean_tokens.append(clean_tok)
-
-    return clean_tokens
 
 # load data
 engine = create_engine('sqlite:///../data/DisasterResponse.db')
@@ -36,7 +27,8 @@ corpus_wide = pd.read_sql_table('CorpusWide', engine)
 ngram_freqs = pd.read_sql_table('NGramsFreqs', engine)
 
 # load model
-model = joblib.load("../models/classifier.pkl")
+with open('../models/best-classifier.pkl', 'rb') as f:
+    model = dill.load(f)
 
 
 # index webpage displays cool visuals and receives user input text for model
@@ -55,7 +47,8 @@ def go():
     query = request.args.get('query', '') 
 
     # use model to predict classification for query
-    classification_labels = model.predict([query])[0]
+    tokenized_query = tokenize_to_str(query, lemmatizer=WordNetLemmatizer())
+    classification_labels = model.predict(np.array([tokenized_query]))[0]
     classification_results = dict(zip(corpus_wide.columns[4:], classification_labels))
 
     # print(classification_results)
