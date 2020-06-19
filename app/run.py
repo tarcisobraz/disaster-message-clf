@@ -1,22 +1,31 @@
+#General libs
 import sys
 import json
+
+#Visualization libs
 import plotly
+import plotly.graph_objs as plt_gos
+
+#Data Wrangling libs
 import pandas as pd
 import numpy as np
 
+#NLP libs
 from nltk import WordNetLemmatizer
 
+#Server libs
 from flask import Flask
 from flask import render_template, request, jsonify, url_for
-import plotly.graph_objs as plt_gos
+
+#Data Persistence libs
 import dill
 from sqlalchemy import create_engine
 
-from skimage import io
-
+#Import tokenization function from another directory
 sys.path.insert(1, '../models/')
 from nlp_estimators import tokenize_to_str
 
+#Initialize Flask App
 app = Flask(__name__)
 
 # load data
@@ -31,12 +40,13 @@ with open('../models/best-classifier.pkl', 'rb') as f:
     model = dill.load(f)
 
 
-# index webpage displays cool visuals and receives user input text for model
+# index webpage displays project overview info and receives user input text for model
 @app.route('/')
 @app.route('/index')
 def index():
     
     # render web page with plotly graphs
+    # This will render the master.html Please see that file. 
     return render_template('master.html')
     
 
@@ -60,10 +70,13 @@ def go():
         classification_result=classification_results
     )
 
+# web page that displays Exploratory Data Analysis on messages/categories data
 @app.route('/words_msgs_dist', endpoint='words_msgs_dist')
 def words_msgs_dist():
-    # create visuals
-    # TODO: Below is an example - modify to create your own visuals
+    # create visuals using Plotly low level API
+    # graphs below show:
+    #  1 - The Overall Distribution of Number of Words per Message
+    #  2 - The Number of Messages/Words Per Category
     graphs = [
         {
             'data': [
@@ -131,16 +144,23 @@ def words_msgs_dist():
     graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
 
     # render web page with plotly graphs
+    # This will render the words_msgs_dist.html Please see that file.
     return render_template('words_msgs_dist.html', ids=ids, graphJSON=graphJSON)
 
-
+# web page that displays Exploratory Data Analysis on N-Grams data extracted from messages
 @app.route('/ngrams_dist', endpoint='ngrams_dist')
 def ngrams_dist():
-    # extract data needed for visuals
+    # extract top n-grams data needed for visuals
     top_unigrams = ngram_freqs[ngram_freqs['n'] == 1].head(20)
     top_bigrams = ngram_freqs[ngram_freqs['n'] == 2].head(20)
     top_trigrams = ngram_freqs[ngram_freqs['n'] == 3].head(20)
     
+    # create visuals using Plotly low level API
+    # graphs below show:
+    #  1 - The Top-20 Unigrams in a bar chart
+    #  2 - The Top-20 Bigrams in a bar chart
+    #  3 - The Top-20 Trigrams in a bar chart
+
     graphs = [
         {
             'data': [
@@ -209,9 +229,10 @@ def ngrams_dist():
     graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
     
     # render web page with plotly graphs
+    # This will render the ngrams_dist.html Please see that file.
     return render_template('ngrams_dist.html', ids=ids, graphJSON=graphJSON)
     
-
+# web page that displays WordClouds of Top N-Grams extracted from messages data
 @app.route('/ngrams_wordcloud', endpoint='ngrams_wordcloud')
 def ngrams_wordcloud():
     static_imgs_folder = '/static/imgs/'
@@ -220,7 +241,7 @@ def ngrams_wordcloud():
             static_imgs_folder + 'bi_wordcloud.png' :'Top Bigrams WordCloud', 
             static_imgs_folder + 'tri_wordcloud.png':'Top Trigrams WordCloud'}
     
-    # This will render the words_msgs_dist.html Please see that file. 
+    # This will render the ngrams_wordcloud.html Please see that file. 
     return render_template('ngrams_wordcloud.html', imgs=imgs)
 
 
