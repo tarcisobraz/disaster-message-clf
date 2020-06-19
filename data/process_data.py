@@ -1,17 +1,45 @@
+#General libs
 import sys
 import pandas as pd
+
+#DB related libs
 from sqlalchemy import create_engine
+
+#NLP libs
 import nltk
 from nltk import WordNetLemmatizer
 
+#Import tokenization and ngrams extraction functions from another directory
 sys.path.insert(1, '../models/')
 from nlp_estimators import tokenize_to_str, get_ngrams_freqs
 
 def count_words(messages):
+    '''
+    INPUT
+    messages - pandas series, disaster messages
+    
+
+    OUTPUT
+    median_num_words_per_message - int, median number of words per message in input messages set
+    
+    This function computes the median number of words per message in input messages set.
+    '''
     num_words_per_message = messages.apply(lambda x: len(x.split(' ')))
     return num_words_per_message.median()
 
 def load_data(messages_filepath, categories_filepath):
+    '''
+    INPUT
+    messages_filepath - string, file path where messages data is stored
+    categories_filepath - string, file path where categories data is stored
+    
+
+    OUTPUT
+    messages_raw - pandas DataFrame, dataframe containing raw messages data
+    categories_raw - pandas DataFrame, dataframe containing raw categories data
+    
+    This function reads and returns raw messages and categories data.
+    '''
     # load raw messages and categories data
     messages_raw = pd.read_csv(messages_filepath)
     categories_raw = pd.read_csv(categories_filepath)
@@ -20,6 +48,28 @@ def load_data(messages_filepath, categories_filepath):
 
 
 def clean_data(messages_raw, categories_raw):
+    '''
+    INPUT
+    messages_raw - pandas DataFrame, dataframe containing raw messages data
+    categories_raw - pandas DataFrame, dataframe containing raw categories data
+    
+
+    OUTPUT
+    messages - pandas DataFrame, dataframe containing cleansed (non-duplicated) messages data
+    categories - pandas DataFrame, dataframe containing cleansed (non-duplicated) categories data
+    categories_wide - pandas DataFrame, dataframe containing categories per message in wide format 
+        (one category per column)
+    categories_long - pandas DataFrame, dataframe containing categories per message in long format 
+        (one category per line)
+    messages_wide - pandas DataFrame, dataframe containing messages data with their respective 
+        categories in wide format (one category per column)
+    messages_long - pandas DataFrame, dataframe containing messages data with their respective 
+        categories in long format (one category per line)
+
+    
+    This function reads raw data and cleans/processes/organizes it, returning different views of the
+    same data to faccilitate analysis.
+    '''
     # rename id column and drop message duplicates
     messages = messages_raw.rename(index=str, columns={'id':'message_id'})
     messages = messages.drop_duplicates()
@@ -69,7 +119,44 @@ def clean_data(messages_raw, categories_raw):
     
     return (messages, categories, categories_wide, categories_long, messages_wide, messages_long)
 
-def prep_data_for_analysis(messages, categories, categories_wide, categories_long, messages_wide, messages_long):
+def prep_data_for_analysis(messages, categories, categories_wide, categories_long, 
+                            messages_wide, messages_long):
+    '''
+    INPUT
+    messages - pandas DataFrame, dataframe containing cleansed (non-duplicated) messages data
+    categories - pandas DataFrame, dataframe containing cleansed (non-duplicated) categories data
+    categories_wide - pandas DataFrame, dataframe containing categories per message in wide format 
+        (one category per column)
+    categories_long - pandas DataFrame, dataframe containing categories per message in long format 
+        (one category per line)
+    messages_wide - pandas DataFrame, dataframe containing messages data with their respective 
+        categories in wide format (one category per column)
+    messages_long - pandas DataFrame, dataframe containing messages data with their respective 
+        categories in long format (one category per line)
+    
+
+    OUTPUT
+    datasets_tables - dict, dictionary mapping to-be DB table names to their respective data-holding
+        pandas dataframe. Datasets comprised are:
+            - messages_final - pandas DataFrame, dataframe containing the final set of messages 
+                for processing (with computed properties)
+            - categories_final - pandas DataFrame, dataframe containing the final set of categories 
+                for processing (with computed properties)
+            - genres_final - pandas DataFrame, dataframe containing the number of messages per genre
+            - corpus_wide - pandas DataFrame, dataframe containing the final set of messages 
+                for processing in wide format (messages in lines and categories in columns)
+            - message_categories - pandas DataFrame, dataframe containing the final set of messages 
+                for processing
+            - messages_tokens - pandas DataFrame, dataframe containing categories per message in long format 
+                (one category per line)
+            - ngrams_freqs - pandas DataFrame, dataframe containing the count of n-grams for the 
+                whole dataset with values of n ranging from 1 to 3
+    
+
+    
+    This function reads clean data and generates the final set of datasets/views to be saved in DB and
+    used in the next steps of the analysis.
+    '''
     # compute number of messages per genre
     messages_per_genre = messages_wide.genre.value_counts().rename_axis('genre').reset_index(name='num_msgs')
 
@@ -127,6 +214,15 @@ def prep_data_for_analysis(messages, categories, categories_wide, categories_lon
     return datasets_tables
 
 def save_data(datasets_tables, database_filepath):
+    '''
+    INPUT
+    datasets_tables - dict, dictionary mapping to-be DB table names to their respective data-holding
+        pandas dataframe
+    database_filepath - string, filepath where database file will be saved to
+    
+    
+    This function saves the dataset tables from the input dictionary to the database.
+    '''
     engine = create_engine('sqlite:///' + database_filepath)
     for table_name, dataset in datasets_tables.items():
         dataset.to_sql(table_name, engine, index=False, if_exists='replace')
