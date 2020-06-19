@@ -1,0 +1,11 @@
+{"name" : "each_fs_median_classifiers",
+ "results_folderpath" : "./",
+ "database_filepath" : "../data/DisasterResponse.db",
+ "glove_models_folderpath" : "./glove-pretrained",
+ "models": [
+    {"feature_set" : "all_feats",
+        "model_ouput_filepath" : "best-all_feats-classifier.pkl",
+        "grid_params" : {}     
+    }
+ ]
+}
