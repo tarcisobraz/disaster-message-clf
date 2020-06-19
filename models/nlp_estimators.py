@@ -36,6 +36,15 @@ from gensim.models.doc2vec import TaggedDocument, Doc2Vec
 from sklearn.base import BaseEstimator
 import multiprocessing
 
+def get_ngrams_freqs(messages_array, n=1):
+    vec = CountVectorizer(ngram_range=(n, n)).fit(messages_array)
+    bag_of_words = vec.transform(messages_array)
+    word_count = bag_of_words.sum(axis=0)
+    words_freq = [(word, n, word_count[0, idx]) for word, idx in vec.vocabulary_.items()]
+    words_freq = sorted(words_freq, key = lambda x: x[2], reverse=True)
+    words_freq_df = pd.DataFrame(data = words_freq, columns = ['ngram','n','count'])
+    return words_freq_df
+
 # Tokenizer Functions
 def tokenize_to_list(text, lemmatizer = WordNetLemmatizer()):
     '''
