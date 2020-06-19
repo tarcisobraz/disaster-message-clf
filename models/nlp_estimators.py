@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 #Helper Libs
+import os
 import re
 from collections import defaultdict
 from sklearn.metrics.pairwise import cosine_similarity
@@ -13,9 +14,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 import nltk
 from nltk import WordNetLemmatizer
 from nltk.corpus import stopwords
-nltk.download('punkt')
-nltk.download('wordnet')
-nltk.download('stopwords')
+
+for corpora in ['punkt','wordnet','stopwords']:
+    _ = nltk.download(corpora, quiet=True)
 
 #Gensim
 from gensim.test.utils import datapath
