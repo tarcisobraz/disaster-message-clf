@@ -42,6 +42,45 @@ In this project, I use a dataset comprised of messages sent in a context of disa
 
 ## Model Training<a name="model_training"></a>
 
+### Feature Sets
+
+In order to develop the classification model, I invested some time developing feature extractors for the data:
+ 
+ - Local Word2Vec model
+   * [Widely known NLP model](https://en.wikipedia.org/wiki/Word2vec) used to generate word embeddings whose idea is to position the text words in a vector space such that words with similar meaning are close to each other, and words with opposite meaning are away from each other.
+   * This model was trained locally, using the [Gensim library](https://radimrehurek.com/gensim/).
+   * In this project, I use the trained model to extract the vectors for each token in the message text and then aggregate the vectors using a custom TF-IDF aggregator.
+ - Pre-trained Glove model
+   * [Glove](https://nlp.stanford.edu/projects/glove/) is another strategy to generate word embeddings developed by Stanford researchers. They provide a set of pre-trained models (trained on corpus with billions of words) with different vector sizes.
+   * In this project, just like with the Word2Vec model, I use the pre-trained Glove model to extract the vectors for each token in the message text and then aggregate the vectors using a custom TF-IDF aggregator.
+ - Doc2Vec
+   * [Doc2Vec] is an NLP model which follows the same idea of Word2Vec, but instead of mapping words to feature vectors, maps whole documents to feature vectors.
+   * This model was trained locally, using the [Gensim library](https://radimrehurek.com/gensim/).
+   * As the model generates one feature vector per message, there was no need to aggregate the vectors as I did for the previous features.
+ - Category Similarity
+   * This is a custom feature thought for this specific project, whose idea is to take advantage of the supervised characteristic of the problem, by comparing the messages feature vectors to the categories names feature vectors, computing the cosine distance between them. I suspect that messages whose words are close to their categories words should have a short distance to them.
+   * The format of this feature is a vector of size num_categories with the cosine distance between the message and each category.
+ - All Features
+   * All the above feature sets together (concatenated)
+ 
+### Classifiers
+
+ - Naive Bayes - Baseline classifier used to test the pipeline execution
+ - Logistic Regression - Linear Classifier with good results on NLP tasks
+ - Random Forest - Widely used Ensemble Classifier with good results on NLP tasks
+ 
+### Feature/Model Evaluation and Selection
+
+In order to select the best feature set and model to use in our classifier, I've used the following approach:
+
+1. Run a Grid Search for each individual Feature Set varying the size of the feature vector using Random Forest and Logistic Regression models with fixed (average) parameters.
+
+2. Run a second Grid Search for the All Features set using the best params from each feature set obtained from the previous grid search using Random Forest and Logistic Regression models with fixed (average) parameters.
+
+3. Run a third Grid Search using the feature set and model with best performance from the above two grid searches, having fixed the feature set best parameters, but now using a grid to search the model hyperparameters.
+
+4. Save the best model obtained from this third Grid Search to be used by the web application.
+
 ## Application<a name="application"></a>
 
 ### Run it yourself!<a name="run_yourself"></a>
