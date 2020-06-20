@@ -1,10 +1,10 @@
-{"name" : "each_fs_median_classifiers",
- "results_folderpath" : "./",
+{"name" : "simple_lr_classifier",
+ "results_folderpath" : "./results/",
  "database_filepath" : "../data/DisasterResponse.db",
  "glove_models_folderpath" : "./glove-pretrained",
  "models": [
     {"feature_set" : "local_w2v",
-        "model_ouput_filepath" : "best-local_w2v-lr.pkl",
+        "model_ouput_filepath" : "./best-models/best-local_w2v-lr.pkl",
         "grid_params" : {
                "local_w2v__num_dims" : [50]            
         }     

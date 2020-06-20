@@ -4,13 +4,31 @@
  "glove_models_folderpath" : "./glove-pretrained",
  "models": [
     {"feature_set" : "all_feats",
-        "model_ouput_filepath" : "best-all_feats-median-classifier.pkl",
+        "model_ouput_filepath" : "./best-models/best-all_feats-median-classifier.pkl",
         "grid_params" : {
             "local_w2v__num_dims" : [300],
             "glove__num_dims" : [300],
             "doc2vec__vector_size" : [50],
             "cats_sim__num_dims" : [300]
         }     
+    }
+ ],
+ "classifiers" : [
+    {"estimator" : "rf",
+        "params" : {
+            "random_state" : 199,
+            "n_estimators" : 50,
+            "max_depth" : 100,
+            "min_samples_split" : 5
+        }
+    },
+    {"estimator" : "lr",
+        "params" : {
+            "random_state" : 199,
+            "penalty" : "l2",
+            "C" : 1,
+            "solver" : "liblinear"
+        }
     }
  ]
 }
