@@ -1,0 +1,23 @@
+{"name" : "each_fs_median_classifiers",
+ "results_folderpath" : "./",
+ "database_filepath" : "../data/DisasterResponse.db",
+ "glove_models_folderpath" : "./glove-pretrained",
+ "models": [
+    {"feature_set" : "local_w2v",
+        "model_ouput_filepath" : "best-local_w2v-lr.pkl",
+        "grid_params" : {
+               "local_w2v__num_dims" : [50]            
+        }     
+    }
+ ],
+ "classifiers" : [
+    {"estimator" : "lr",
+        "params" : {
+            "clf__estimator__random_state" : [199],
+            "clf__estimator__penalty" : ["l1", "l2"],
+            "clf__estimator__C" : [0.1, 1, 3],
+            "clf__estimator__solver" : ["liblinear"]
+        }
+    }
+ ]
+}
