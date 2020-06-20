@@ -2,17 +2,12 @@
 
 ### Table of Contents
 
-1. [Installation](#installation)
-2. [Motivation](#motivation)
-3. [Repository Structure / Files](#files)
-4. [Model Training](#model_training)
-5. [Application](#application)
-6. [Run it yourself!](#run_yourself)
+1. [Motivation](#motivation)
+2. [Repository Structure / Files](#files)
+3. [Model Training](#model_training)
+4. [Application](#application)
+5. [Run it yourself!](#run_yourself)
 6. [Licensing, Authors, and Acknowledgements](#licensing)
-
-## Installation <a name="installation"></a>
-
-The code assumes you use Anaconda (Python 3). Use the requirements.txt file at the repo root folder to recreate the conda environment with the needed libraries: `conda create --name <env> --file requirements.txt`
 
 ## Motivation<a name="motivation"></a>
 
@@ -50,17 +45,26 @@ In this project, I use a dataset comprised of messages sent in a context of disa
 ## Application<a name="application"></a>
 
 ### Run it yourself!<a name="run_yourself"></a>
-1. Run the following commands in the project's root directory to set up your database and model.
 
-    - To run ETL pipeline that cleans data and stores in database
-        `python data/process_data.py data/disaster_messages.csv data/disaster_categories.csv data/DisasterResponse.db`
-    - To run ML pipeline that trains classifier and saves
-        `python models/train_classifier.py data/DisasterResponse.db models/classifier.pkl`
+1. The code assumes you use Anaconda (Python 3). Use the requirements.txt file at the repo root folder to recreate the conda environment with the needed libraries: `conda create --name <env_name> --file requirements.txt`.
 
-2. Run the following command in the app's directory to run your web app.
+2. Download the [pre-trained Glove models](https://drive.google.com/file/d/1XGzkIEgx6Y2IjzVYGDvn_shd77d_ZKki/view?usp=sharing) if you want to train models with Glove feature vectors. Unzip it into a local folder and set the `glove_models_folderpath` config in the train config file.
+
+3. Run the following commands to prepare the data and model for application:
+
+    - To activate the Anaconda environment created above, run the following command in the root folder:
+        `conda activate <env_name>`
+    - To run ETL pipeline that cleans data and stores in database, run the following command in the `data` folder:
+        `python process_data.py disaster_messages.csv disaster_categories.csv DisasterResponse.db`
+    - To run ML pipeline that trains classifier and saves, run the following command in the `models` folder:
+        `python train_classifier.py configs/train_config_simple.json 0`
+    - To generate the wordclouds for the application, run the following command in the `apps` folder:
+        `python generate-ngrams-wordclouds.py ../data/DisasterResponse.db static/imgs/`
+
+4. Run the following command in the app's directory to run your web app.
     `python run.py`
 
-3. Go to http://0.0.0.0:3001/
+5. Go to http://0.0.0.0:3001/ to access the application.
 
 
 ## Licensing, Authors, Acknowledgements<a name="licensing"></a>
