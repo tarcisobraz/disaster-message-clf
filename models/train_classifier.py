@@ -323,75 +323,90 @@ def build_grid_search_results_df(gs_results, gs_name, test_score):
 
     return gs_results_df
 
+def run_grid_search():
+    '''
+    This function runs the whole model selection phase:
+        - Load Data from DB
+        - Build Model
+        - Run GridSearch
+        - Save results to file
+        - Save best model pickle file
+    '''
+    start = time.time()
+    print("Train configuration:")
+    print(json.dumps(train_configs, indent=4))
+    print('Loading data...\n    DATABASE: {}'.format(train_configs['database_filepath']))
+    X, X_tokenized, Y, category_names, categories_tokens = load_data(train_configs['database_filepath'])
+    X_train, X_test, Y_train, Y_test = train_test_split(X_tokenized, Y, test_size=0.25)
+    classifiers_params = build_classifiers_build_params(train_configs['classifiers'])
+
+    print('Running GridSearch on models parameters...')
+    best_score = 0.0
+    best_gs = ''
+    overall_results_df = pd.DataFrame()
+
+    for model_config in train_configs['models']:
+        print('Building model...')
+        model = build_model(model_config,
+                            classifiers_params,
+                            categories_tokens)
+
+        print('Training model...')
+        model.fit(X_train, Y_train)
+
+        print('Evaluating model...')
+        test_score = evaluate_model(model, X_test, Y_test, category_names)
+
+        gs_results_df = build_grid_search_results_df(model.cv_results_, 
+                                    model_config['feature_set'], 
+                                    test_score)
+
+        overall_results_df = pd.concat([overall_results_df, gs_results_df])
+
+        print('Saving model...\n    MODEL: {}'.format(
+            model_config['model_ouput_filepath']))
+        save_model(model.best_estimator_, model_config['model_ouput_filepath'])
+
+        print('Trained model saved!')
+
+        # Track best (highest test accuracy) model
+        if test_score > best_score:
+            best_score = test_score
+            best_gs = model_config['feature_set']
+
+    output_filepath =  train_configs['results_folderpath'] + \
+                        'res-' + train_configs['name'] + '-' + \
+                        datetime.now().strftime('%Y-%m-%d %H:%M:%S') + \
+                        '.csv'
+
+    print('Saving Results...\n    FILEPATH: {}'.format(output_filepath))
+    overall_results_df.to_csv(output_filepath, index=False)
+
+    print('\nClassifier with best test set accuracy: %s' % best_gs)
+
+    end = time.time()
+    print("Training Time: " + str(int(end - start)) + "s")
+
 def main():
-    with active_session():
-        if len(sys.argv) >= 2:
-            start = time.time()
+    if len(sys.argv) >= 3:
+        train_config_filepath, using_udacity_workspace = sys.argv[1:]
 
-            # Read train config from file
-            train_config_filepath = sys.argv[1]
-            with open(train_config_filepath, 'r') as f:
-                global train_configs
-                train_configs = json.load(f)
+        # Read train config from file
+        with open(train_config_filepath, 'r') as f:
+            global train_configs
+            train_configs = json.load(f)
 
-            print("Train configuration:")
-            print(json.dumps(train_configs, indent=4))
-            print('Loading data...\n    DATABASE: {}'.format(train_configs['database_filepath']))
-            X, X_tokenized, Y, category_names, categories_tokens = load_data(train_configs['database_filepath'])
-            X_train, X_test, Y_train, Y_test = train_test_split(X_tokenized, Y, test_size=0.25)
-            classifiers_params = build_classifiers_build_params(train_configs['classifiers'])
-
-
-            print('Running GridSearch on models parameters...')
-            best_score = 0.0
-            best_gs = ''
-            overall_results_df = pd.DataFrame()
-
-            for model_config in train_configs['models']:
-                print('Building model...')
-                model = build_model(model_config,
-                                    classifiers_params,
-                                    categories_tokens)
-
-                print('Training model...')
-                model.fit(X_train, Y_train)
-
-                print('Evaluating model...')
-                test_score = evaluate_model(model, X_test, Y_test, category_names)
-
-                gs_results_df = build_grid_search_results_df(model.cv_results_, 
-                                            model_config['feature_set'], 
-                                            test_score)
-
-                overall_results_df = pd.concat([overall_results_df, gs_results_df])
-
-                print('Saving model...\n    MODEL: {}'.format(
-                    model_config['model_ouput_filepath']))
-                save_model(model.best_estimator_, model_config['model_ouput_filepath'])
-
-                print('Trained model saved!')
-
-                # Track best (highest test accuracy) model
-                if test_score > best_score:
-                    best_score = test_score
-                    best_gs = model_config['feature_set']
-
-            output_filepath =  train_configs['results_folderpath'] + \
-                                'res-' + train_configs['name'] + '-' + \
-                                datetime.now().strftime('%Y-%m-%d %H:%M:%S') + \
-                                '.csv'
-
-            print('Saving Results...\n    FILEPATH: {}'.format(output_filepath))
-            overall_results_df.to_csv(output_filepath, index=False)
-
-            print('\nClassifier with best test set accuracy: %s' % best_gs)
-
-            end = time.time()
-            print("Training Time: " + str(int(end - start)) + "s")
-
+        if using_udacity_workspace == 1:
+            with active_session():
+                run_grid_search()
         else:
-            print('Please provide the filepath of train configuration file \n\n'\
-                  'Example: python train_classifier.py train_config.json')
+            run_grid_search()
+
+    else:
+        print('Please provide the filepath of train configuration file and '\
+            ' whether or not you are using udacity workspace (0,1) \n\n'\
+            'Example running local: python train_classifier.py configs/train_config_simple.json 0'\
+            '\nExample running at Udacity: python train_classifier.py configs/train_config_simple.json 1')
 
 
 if __name__ == '__main__':
