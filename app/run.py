@@ -36,7 +36,7 @@ corpus_wide = pd.read_sql_table('CorpusWide', engine)
 ngram_freqs = pd.read_sql_table('NGramsFreqs', engine)
 
 # load model
-with open('../models/best-classifier.pkl', 'rb') as f:
+with open('../models/best-models/best-classifier.pkl', 'rb') as f:
     model = dill.load(f)
 
 
