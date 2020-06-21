@@ -155,3 +155,13 @@ Besides, there are some analysis on the dataset, showing:
 
 ## Licensing, Authors, Acknowledgements<a name="licensing"></a>
 
+In order to achieve the results presented in this project, I've read many articles of specialists/enthusiasts in the field of NLP to get insights and learn how to deal with the problems I've faced along the way. Below, I cite some of them:
+
+- [A Comprehensive Guide to Understand and Implement Text Classification in Python](https://www.analyticsvidhya.com/blog/2018/04/a-comprehensive-guide-to-understand-and-implement-text-classification-in-python/)
+- [Managing Machine Learning Workflows with Scikit-learn Pipelines Part 3: Multiple Models, Pipelines, and Grid Searches](https://www.kdnuggets.com/2018/01/managing-machine-learning-workflows-scikit-learn-pipelines-part-3.html)
+- [Deep dive into multi-label classification..! (With detailed Case Study)](https://towardsdatascience.com/journey-to-the-center-of-multi-label-classification-384c40229bff)
+- [How to Build a Reusable Custom NLP Pipeline with Scikit-Learn](https://towardsdatascience.com/how-to-build-a-reusable-nlp-code-pipeline-with-scikit-learn-with-an-emphasis-on-feature-504f8aa14699)
+- [[NLP] Performance of Different Word Embeddings on Text Classification](https://towardsdatascience.com/nlp-performance-of-different-word-embeddings-on-text-classification-de648c6262b)
+- [Multi-Class Text Classification Model Comparison and Selection](https://towardsdatascience.com/multi-class-text-classification-model-comparison-and-selection-5eb066197568)
+
+Feel free to use the code provided that you give credits / cite this repo, as well as to contribute.
