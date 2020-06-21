@@ -1,16 +1,16 @@
 {"name" : "all_fs_median_classifiers",
  "results_folderpath" : "./results/",
  "database_filepath" : "../data/DisasterResponse.db",
- "glove_models_folderpath" : "./glove-pretrained",
+ "glove_models_folderpath" : "./glove-pretrained/w2v/",
  "models": [
     {"feature_set" : "all_feats",
         "model_ouput_filepath" : "./best-models/best-all_feats-median-classifier.pkl",
         "grid_params" : {
-            "local_w2v__num_dims" : [300],
-            "glove__num_dims" : [300],
-            "doc2vec__vector_size" : [50],
-            "cats_sim__num_dims" : [300]
-        }     
+	    "features__local_w2v__num_dims" : [300],
+            "features__glove__num_dims" : [300],
+            "features__doc2vec__vector_size" : [50],
+            "features__cats_sim__num_dims" : [300]
+	}     
     }
  ],
  "classifiers" : [
