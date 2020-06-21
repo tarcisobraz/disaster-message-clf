@@ -143,7 +143,7 @@ Besides, there are some analysis on the dataset, showing:
     - To run ETL pipeline that cleans data and stores in database, run the following command in the `data` folder:
         `python process_data.py disaster_messages.csv disaster_categories.csv DisasterResponse.db`
     - To run ML pipeline that trains classifier and saves, run the following command in the `models` folder:
-        `python train_classifier.py configs/train_config_simple.json 0`
+        `python train_classifier.py configs/train_config_best_model.json 0`
     - To generate the wordclouds for the application, run the following command in the `apps` folder:
         `python generate-ngrams-wordclouds.py ../data/DisasterResponse.db static/imgs/`
 
