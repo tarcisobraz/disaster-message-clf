@@ -81,9 +81,27 @@ In order to select the best feature set and model to use in our classifier, I've
 
 4. Save the best model obtained from this third Grid Search to be used by the web application.
 
+### Results
+
+The table below shows the Top-5 FeatureSet-Model combinations according to their score on the test set.
+
+| Feature Set                    | Model                                                          | Test Score (F1-Score) |
+| ------------------------------ | -------------------------------------------------------------- | --------------------- |
+| TF-IDF Local W2V (num_dims=300)| RandomForest(n_estimators=50,max_depth=100,min_num_samples=5)  | 0.474161              |
+| TF-IDF Local W2V (num_dims=300)| RandomForest(n_estimators=100,max_depth=100,min_num_samples=5) | 0.471549              |
+| TF-IDF Local W2V (num_dims=100)| RandomForest(n_estimators=50,max_depth=100,min_num_samples=5)  | 0.470284              |
+| All Features with Best Params  | RandomForest(n_estimators=50,max_depth=100,min_num_samples=5)  | 0.470169              |
+| TF-IDF Local W2V (num_dims=300)| RandomForest(n_estimators=50,max_depth=100,min_num_samples=5)  | 0.469709              |
+
+As we can see, the TF-IDF aggregated Local Word2Vec outweights all others, making 4 of the top-5. In addition, all Top-5 pipelines use RandomForest as the classifier model. The best pipeline uses a feature vector with 300 dimensions and 50 trees (estimators) in the Random Forest.
+
+The final test score is not high (below 50%), but we have to take into consideration the high complexity of the problem (multilabel classification), the large number of classes and the small number of samples in the dataset, which contributed greatly towards this result. Besides, I did not have a more robust infrastructure to test a wider range of grid params for the feature sets and models.
+
+Notice: the F1-Score was computed by applying micro-averaging accross all the classes, accounting for class imbalance, as literature suggests.
+
 ## Application<a name="application"></a>
 
-### Run it yourself!<a name="run_yourself"></a>
+## Run it yourself!<a name="run_yourself"></a>
 
 1. The code assumes you use Anaconda (Python 3). Use the requirements.txt file at the repo root folder to recreate the conda environment with the needed libraries: `conda create --name <env_name> --file requirements.txt`.
 
