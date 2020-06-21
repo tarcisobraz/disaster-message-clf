@@ -30,5 +30,23 @@
             "solver" : "liblinear"
         }
     }
+ ],
+ "classifiers" : [
+    {"estimator" : "rf",
+        "params" : {
+            "random_state" : 199,
+            "n_estimators" : 50,
+            "max_depth" : 100,
+            "min_samples_split" : 5
+        }
+    },
+    {"estimator" : "lr",
+        "params" : {
+            "random_state" : 199,
+            "penalty" : "l2",
+            "C" : 1,
+            "solver" : "liblinear"
+        }
+    }
  ]
 }
