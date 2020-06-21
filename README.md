@@ -101,6 +101,35 @@ Notice: the F1-Score was computed by applying micro-averaging accross all the cl
 
 ## Application<a name="application"></a>
 
+The results of the project are presented in the form of a Web Application. Next, I show some screenshots of it to depict its features:
+
+<p align="center">
+  <img width="800" height="200" src="app/screenshots/classifier-header.png">
+</p>
+
+At the header of the website, there is a text box where the user can type in a message and get back the classification results:
+
+<p align="center">
+  <img width="800" height="200" src="app/screenshots/classification-results.png">
+</p>
+
+Besides, there are some analysis on the dataset, showing:
+
+- the number of messages/words per category
+<p align="center">
+  <img width="800" height="800" src="app/screenshots/messages-eda.png">
+</p>
+
+- the most common n-grams (in the form of histograms)
+<p align="center">
+  <img width="800" height="400" src="app/screenshots/bigrams-hist.png">
+</p>
+
+- the most common n-grams (in the form of wordclouds)
+<p align="center">
+  <img width="600" height="200" src="app/static/imgs/bi_wordcloud.png">
+</p>
+
 ## Run it yourself!<a name="run_yourself"></a>
 
 1. The code assumes you use Anaconda (Python 3). Use the requirements.txt file at the repo root folder to recreate the conda environment with the needed libraries: `conda create --name <env_name> --file requirements.txt`.
