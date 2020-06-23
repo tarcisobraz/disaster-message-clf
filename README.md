@@ -54,7 +54,7 @@ In order to develop the classification model, I invested some time developing fe
    * [Glove](https://nlp.stanford.edu/projects/glove/) is another strategy to generate word embeddings developed by Stanford researchers. They provide a set of pre-trained models (trained on corpus with billions of words) with different vector sizes.
    * In this project, just like with the Word2Vec model, I use the pre-trained Glove model to extract the vectors for each token in the message text and then aggregate the vectors using a custom TF-IDF aggregator.
  - Doc2Vec
-   * [Doc2Vec] is an NLP model which follows the same idea of Word2Vec, but instead of mapping words to feature vectors, maps whole documents to feature vectors.
+   * [Doc2Vec](https://radimrehurek.com/gensim/models/doc2vec.html) is an NLP model which follows the same idea of Word2Vec, but instead of mapping words to feature vectors, maps whole documents to feature vectors.
    * This model was trained locally, using the [Gensim library](https://radimrehurek.com/gensim/).
    * As the model generates one feature vector per message, there was no need to aggregate the vectors as I did for the previous features.
  - Category Similarity
@@ -131,6 +131,15 @@ Besides, there are some analysis on the dataset, showing:
 </p>
 
 ## Run it yourself!<a name="run_yourself"></a>
+
+### Dependencies
+
+The project needs a few extra libraries which don't come along with Anaconda 3's default package:
+- Gensim
+- dill
+- plotly
+
+In order to faccilitate the reproduction of the results, I've added to the repository a requirements.txt file with all the packages (and their respective versions) I used in the conda environment I created locally for this project.
 
 1. The code assumes you use Anaconda (Python 3). Use the requirements.txt file at the repo root folder to recreate the conda environment with the needed libraries: `conda create --name <env_name> --file requirements.txt`.
 
