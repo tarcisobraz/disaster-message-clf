@@ -37,6 +37,18 @@ from sklearn.base import BaseEstimator
 import multiprocessing
 
 def get_ngrams_freqs(messages_array, n=1):
+    '''
+    INPUT
+    messages_array - numpy array, string messages from where n-grams will be extracted
+    n - int, n-gram size, defaults to 1
+    
+    OUTPUT
+    words_freq_df, pandas DataFrame, a dataframe with all the n-grams found within the data
+    along with their respective counts.
+    
+    This function receives a numpy array with messages from which all n-grams of size n will be 
+    recognized and counted, returning a dataframe with the distribution of such n-grams.
+    '''
     vec = CountVectorizer(ngram_range=(n, n)).fit(messages_array)
     bag_of_words = vec.transform(messages_array)
     word_count = bag_of_words.sum(axis=0)
@@ -87,6 +99,22 @@ def tokenize_to_str(text, lemmatizer = WordNetLemmatizer()):
 # Feature Generators/Aggregators
 
 class MeanEmbeddingTrainVectorizer(BaseEstimator):
+    """ 
+    A feature vector aggregator which uses the mean as the aggregation function.
+
+    Parameters
+    ----------
+    word2vec_model : gensim.models.Word2Vec, default=None
+        A pre-built word2vec model which will be used to generate the feature vectors
+    num_dims : int, default=100
+        The number of dimensions of the feature vector to be generated
+
+    Attributes
+    ----------
+    workers : int
+        The number of workers to be used if training the model from local data
+        when calling :meth:`fit`.
+    """
 
     def __init__(self, word2vec_model=None, num_dims=100):
         if word2vec_model is None:
@@ -101,6 +129,22 @@ class MeanEmbeddingTrainVectorizer(BaseEstimator):
         print(self.num_dims)
             
     def fit(self, X, y):
+        """
+        If a pre-built model is not passed in the initialization, this method
+        fits a word2vec model on the input data given the number of dimensions passed.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape (n_samples, n_features)
+            The training input samples.
+        y : None
+            There is no need of a target in a transformer, yet the pipeline API
+            requires this parameter.
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
         if self.word2vec_model is None:
             self.word2vec_model = gensim.models.Word2Vec(X, size=self.num_dims, 
                                                          workers=self.workers)
@@ -108,6 +152,19 @@ class MeanEmbeddingTrainVectorizer(BaseEstimator):
         return self 
 
     def transform(self, X):
+        """ 
+        Extracts the feature vector from the data using the word2vec model
+        and aggregates the vector for each element in ``X`` using the mean.
+
+        Parameters
+        ----------
+        X : {array-like, sparse-matrix}, shape (n_samples, n_features)
+            The input samples.
+        Returns
+        -------
+        mean_embeddings : array, shape (n_samples, n_features)
+            The array containing the element-wise mean of the feature vectors obtained from ``X``.
+        """
         mean_embeddings = np.empty([X.shape[0],self.num_dims])
         
         for i in range(X.shape[0]):
@@ -125,12 +182,47 @@ class MeanEmbeddingTrainVectorizer(BaseEstimator):
         return mean_embeddings
     
 class TfidfEmbeddingTrainVectorizer(BaseEstimator):
-    
+    """ 
+    A feature vector aggregator which uses the TF-IDF as the aggregation function.
+
+    Parameters
+    ----------
+    word2vec_model : gensim.models.Word2Vec, default=None
+        A pre-built word2vec model which will be used to generate the feature vectors
+    num_dims : int, default=100
+        The number of dimensions of the feature vector to be generated
+
+    Attributes
+    ----------
+    workers : int
+        The number of workers to be used if training the model from local data
+        when calling :meth:`fit`.
+    word_weights : dict
+        The TF-IDF weights dictionary for every word of the corpus
+    """
     def __init__(self, word2vec_model=None, num_dims=100):
         self.word2vec_model = word2vec_model
         self.num_dims = num_dims
         
     def fit(self, X, y):
+        """
+        If a pre-built model is not passed in the initialization, this method
+        fits a word2vec model on the input data given the number of dimensions passed,
+        and computes the word_weights dict using TF-IDF. If the word cannot be found
+        within the dict, it returns the max_idf value.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape (n_samples, n_features)
+            The training input samples.
+        y : None
+            There is no need of a target in a transformer, yet the pipeline API
+            requires this parameter.
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
         if self.word2vec_model is None:
             self.workers_ = multiprocessing.cpu_count() - 1
             self.word2vec_model = gensim.models.Word2Vec(X, size=self.num_dims, 
@@ -147,6 +239,20 @@ class TfidfEmbeddingTrainVectorizer(BaseEstimator):
         return self
     
     def transform(self, X):
+        """ 
+        Extracts the feature vector from the data using the word2vec model
+        and aggregates the vector for each element in ``X`` using the TF-IDF
+        word weights.
+
+        Parameters
+        ----------
+        X : {array-like, sparse-matrix}, shape (n_samples, n_features)
+            The input samples.
+        Returns
+        -------
+        mean_embeddings : array, shape (n_samples, n_features)
+            The array containing the element-wise TF-IDF of the feature vectors obtained from ``X``.
+        """
         mean_embeddings = np.empty([X.shape[0],self.num_dims])
         
         for i in range(X.shape[0]):
@@ -165,7 +271,25 @@ class TfidfEmbeddingTrainVectorizer(BaseEstimator):
 
 
 class Doc2VecTransformer(BaseEstimator):
+    """ 
+    A Doc2Vec feature generator.
+    For more info on Doc2Vec, see: https://radimrehurek.com/gensim/models/doc2vec.html
 
+    Parameters
+    ----------
+    vector_size : int, default=100
+        The number of dimensions of the feature vector to be generated
+    epochs : int, default=20
+        The number of epochs to be used when training the Doc2Vec model
+
+    Attributes
+    ----------
+    workers : int
+        The number of workers to be used if training the model from local data
+        when calling :meth:`fit`.
+    d2v_model : gensim.models.doc2vec.Doc2Vec, default=None
+        The doc2vec model to be fit and used to generate the feature vectors
+    """
     def __init__(self, vector_size=100, epochs=20):
         self.epochs = epochs
         self.vector_size = vector_size
@@ -173,6 +297,22 @@ class Doc2VecTransformer(BaseEstimator):
         self.d2v_model = None
 
     def fit(self, X, y):
+        """
+        Fits a doc2vec model on the input data given the number of dimensions 
+        and epochs passed.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape (n_samples, n_features)
+            The training input samples.
+        y : None
+            There is no need of a target in a transformer, yet the pipeline API
+            requires this parameter.
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
         tagged_x = [TaggedDocument(tokens_str.split(), [index]) for index, tokens_str in np.ndenumerate(X)]
         self.d2v_model = Doc2Vec(vector_size=self.vector_size, workers=self.workers, epochs=self.epochs)
         self.d2v_model.build_vocab(tagged_x)
@@ -182,17 +322,71 @@ class Doc2VecTransformer(BaseEstimator):
         return self
 
     def transform(self, X):
+        """ 
+        Extracts the feature vector from the data using the doc2vec model 
+        for each element in ``X``.
+
+        Parameters
+        ----------
+        X : {array-like, sparse-matrix}, shape (n_samples, n_features)
+            The input samples.
+        Returns
+        -------
+        _ : array, shape (n_samples, n_features)
+            The array containing the element-wise doc2vec feature vectors obtained from ``X``.
+        """
         return np.asmatrix(np.array([self.d2v_model.infer_vector(tokens_str.split())
                                      for tokens_str in X]))
     
 class CategoriesSimilarity(BaseEstimator):
-    
+    """ 
+    A Category Similarity feature generator.
+    This is a custom feature thought for this specific project, 
+    whose idea is to take advantage of the supervised characteristic of the problem, 
+    by comparing the messages feature vectors to the categories names feature vectors, 
+    computing the cosine distance between them. I suspect that messages whose words are
+    close to their categories words should have a short distance to them.
+    The format of this feature is a vector of size num_categories with the 
+    cosine distance between the message and each category.
+
+    Parameters
+    ----------
+    categories_tokens : {array-like, sparse matrix}, shape (n_categories, 1)
+        The category names tokens.
+    word2vec_model : gensim.models.Word2Vec, default=None
+        A pre-built word2vec model which will be used to generate the feature vectors
+    num_dims : int, default=100
+        The number of dimensions of the feature vector to be generated
+
+    Attributes
+    ----------
+    workers : int
+        The number of workers to be used if training the model from local data
+        when calling :meth:`fit`.
+    categories_vectors : {array-like, sparse matrix}, shape (n_categories, n_features)
+        The array containing the mean feature vectors generated for the category tokens
+        using the word2vec model
+    """
     def __init__(self, categories_tokens, word2vec_model=None, num_dims=100):
         self.categories_tokens = categories_tokens
         self.word2vec_model = word2vec_model    
         self.num_dims = num_dims
         
     def compute_mean_embeddings(self, tokens_array):    
+        """ 
+        Extracts the feature vector from the data using the word2vec model
+        and aggregates the vector for each element in ``X`` using the mean.
+
+        Parameters
+        ----------
+        tokens_array : {array-like, sparse-matrix}, shape (n_samples, n_features)
+            The input samples.
+        Returns
+        -------
+        mean_embeddings : array, shape (n_samples, n_features)
+            The array containing the element-wise mean of the feature vectors 
+            obtained from ``tokens_array``.
+        """
         mean_embeddings = np.empty([tokens_array.shape[0],self.num_dims])
         
         for i in range(tokens_array.shape[0]):
@@ -210,6 +404,22 @@ class CategoriesSimilarity(BaseEstimator):
         return mean_embeddings
                     
     def fit(self, X, y):
+        """
+        Fits a word2vec model on the input data given the number of dimensions passed.
+        Then, generates the mean feature vectors for the category tokens array.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape (n_samples, n_features)
+            The training input samples.
+        y : None
+            There is no need of a target in a transformer, yet the pipeline API
+            requires this parameter.
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
         if self.word2vec_model is None:
             self.workers_ = multiprocessing.cpu_count() - 1
             self.word2vec_model = gensim.models.Word2Vec(X, size=self.num_dims, 
@@ -219,6 +429,21 @@ class CategoriesSimilarity(BaseEstimator):
         return self 
 
     def transform(self, X):
+        """ 
+        Extracts the feature vector from the data using the word2vec model 
+        for each element in ``X`` and then computes the distance between each
+        element's mean feature vector and the mean feature vector of each category.
+
+        Parameters
+        ----------
+        X : {array-like, sparse-matrix}, shape (n_samples, n_features)
+            The input samples.
+        Returns
+        -------
+        cats_similarities : array, shape (n_samples, n_features)
+            The array containing the element-wise distance array between mean feature vectors
+            obtained from ``X`` and mean feature vectors obtained from category tokens.
+        """
         mean_embeddings = self.compute_mean_embeddings(X)
         cats_similarities = cosine_similarity(mean_embeddings, self.categories_vectors_)
             
