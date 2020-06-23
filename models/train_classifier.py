@@ -274,15 +274,23 @@ def evaluate_model(model, X_test, Y_test, category_names):
     
     
     This function runs the model with best performance on the training set on the test dataset,
-    returning the prediction score.
+    printing the precision, recall and f-1 per category and returning the overall prediction score.
     '''
     print('Best params: %s' % model.best_params_)
     # Best training data accuracy
     print('Best training score: %.3f' % model.best_score_)
     # Predict on test data with best params
+    Y_pred = model.predict(X_test)
     test_score = model.score(X_test, Y_test)
     # Test data accuracy of model with best params
     print('Test set score for best params: %.3f ' % test_score)
+
+    for category_idx in range(len(category_names)):
+        print(classification_report(y_pred=Y_pred[:,category_idx],
+                                    y_true=Y_test[:,category_idx], 
+                                    labels=[0,1], 
+                                    target_names=[category_names[category_idx] + '-0',
+                                                  category_names[category_idx] + '-1']))
 
     return test_score
 
