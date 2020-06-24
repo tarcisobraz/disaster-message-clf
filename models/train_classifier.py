@@ -384,7 +384,7 @@ def run_grid_search():
 
     output_filepath =  train_configs['results_folderpath'] + \
                         'res-' + train_configs['name'] + '-' + \
-                        datetime.now().strftime('%Y-%m-%d %H:%M:%S') + \
+                        datetime.now().strftime('%Y-%m-%d_%H:%M:%S') + \
                         '.csv'
 
     print('Saving Results...\n    FILEPATH: {}'.format(output_filepath))
